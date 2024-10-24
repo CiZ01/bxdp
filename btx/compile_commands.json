@@ -1,0 +1,62 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/clang",
+      "-g",
+      "-O2",
+      "-target",
+      "bpf",
+      "-c",
+      "-o",
+      "btx.bpf.o",
+      "btx.bpf.c"
+    ],
+    "directory": "/home/vladimiro/bxdp/btx",
+    "file": "/home/vladimiro/bxdp/btx/btx.bpf.c",
+    "output": "/home/vladimiro/bxdp/btx/btx.bpf.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-g",
+      "-O2",
+      "-o",
+      "btx",
+      "btx.c"
+    ],
+    "directory": "/home/vladimiro/bxdp/btx",
+    "file": "/home/vladimiro/bxdp/btx/btx.c",
+    "output": "/home/vladimiro/bxdp/btx/btx"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang",
+      "-g",
+      "-O2",
+      "-target",
+      "bpf",
+      "-c",
+      "-o",
+      "tx.bpf.o",
+      "tx.bpf.c"
+    ],
+    "directory": "/home/vladimiro/bxdp/btx",
+    "file": "/home/vladimiro/bxdp/btx/tx.bpf.c",
+    "output": "/home/vladimiro/bxdp/btx/tx.bpf.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-g",
+      "-O2",
+      "-o",
+      "tx",
+      "tx.c"
+    ],
+    "directory": "/home/vladimiro/bxdp/btx",
+    "file": "/home/vladimiro/bxdp/btx/tx.c",
+    "output": "/home/vladimiro/bxdp/btx/tx"
+  }
+]

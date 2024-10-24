@@ -6,3 +6,4 @@
 *.pcap
 *.o
 *.skel.h
+!Makefile

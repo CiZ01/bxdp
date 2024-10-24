@@ -1,0 +1,64 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/clang",
+      "-g",
+      "-O2",
+      "--target=bpf",
+      "-I",
+      "/usr/local/include/mykperf",
+      "-c",
+      "-o",
+      "bdrop.bpf.o",
+      "bdrop.bpf.c"
+    ],
+    "directory": "/home/vladimiro/bxdp/bdrop",
+    "file": "/home/vladimiro/bxdp/bdrop/bdrop.bpf.c",
+    "output": "/home/vladimiro/bxdp/bdrop/bdrop.bpf.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-g",
+      "-O2",
+      "-o",
+      "bdrop",
+      "bdrop.c"
+    ],
+    "directory": "/home/vladimiro/bxdp/bdrop",
+    "file": "/home/vladimiro/bxdp/bdrop/bdrop.c",
+    "output": "/home/vladimiro/bxdp/bdrop/bdrop"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang",
+      "-g",
+      "-O2",
+      "--target=bpf",
+      "-I",
+      "/usr/local/include/mykperf",
+      "-c",
+      "-o",
+      "drop.bpf.o",
+      "drop.bpf.c"
+    ],
+    "directory": "/home/vladimiro/bxdp/bdrop",
+    "file": "/home/vladimiro/bxdp/bdrop/drop.bpf.c",
+    "output": "/home/vladimiro/bxdp/bdrop/drop.bpf.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-g",
+      "-O2",
+      "-o",
+      "drop",
+      "drop.c"
+    ],
+    "directory": "/home/vladimiro/bxdp/bdrop",
+    "file": "/home/vladimiro/bxdp/bdrop/drop.c",
+    "output": "/home/vladimiro/bxdp/bdrop/drop"
+  }
+]

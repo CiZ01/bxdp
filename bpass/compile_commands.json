@@ -1,0 +1,33 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/clang",
+      "-g",
+      "-O2",
+      "-target",
+      "bpf",
+      "-c",
+      "-DDEBUG",
+      "-o",
+      "bpass.bpf.o",
+      "bpass.bpf.c"
+    ],
+    "directory": "/home/vladimiro/bxdp/bpass",
+    "file": "/home/vladimiro/bxdp/bpass/bpass.bpf.c",
+    "output": "/home/vladimiro/bxdp/bpass/bpass.bpf.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-g",
+      "-O2",
+      "-o",
+      "bpass",
+      "bpass.c"
+    ],
+    "directory": "/home/vladimiro/bxdp/bpass",
+    "file": "/home/vladimiro/bxdp/bpass/bpass.c",
+    "output": "/home/vladimiro/bxdp/bpass/bpass"
+  }
+]

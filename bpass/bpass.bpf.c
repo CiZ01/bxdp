@@ -27,7 +27,7 @@ __attribute__((__always_inline__)) static inline int packet_process(struct ethhd
 	// {
 	// 	return XDP_PASS;
 	// }
-	return XDP_DROP;
+	return XDP_PASS;
 }
 
 SEC("xdp")
