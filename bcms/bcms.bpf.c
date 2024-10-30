@@ -41,7 +41,7 @@ struct t_meta
 
 struct countmin
 {
-    __u8 values[HASHFN_N][COLUMNS];
+    __u64 values[HASHFN_N][COLUMNS];
 };
 
 struct pkt_5tuple
