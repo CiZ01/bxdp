@@ -26,11 +26,8 @@
 #include <bpf/bpf_endian.h>
 #include <linux/types.h>
 #include <bpf/bpf_helpers.h>
-#include "mykperf_module.h"
 #include "fasthash.h"
 
-BPF_MYKPERF_INIT_TRACE();
-DEFINE_SECTIONS("main");
 
 struct t_meta
 {
@@ -82,8 +79,8 @@ static __always_inline void countmin_add(struct countmin *cm, const __u16 hashes
     for (int i = 0; i < ARRAY_SIZE(hashes); i++)
     {
         __u32 target_idx = hashes[i] & (COLUMNS - 1);
-        __sync_fetch_and_add(&cm->values[i][target_idx], 1); //;< -this crash clang
-        // cm->values[i][target_idx]++;
+        //__sync_fetch_and_add(&cm->values[i][target_idx], 1); //;< -this crash clang
+        cm->values[i][target_idx]++;
     }
     return;
 }
@@ -139,7 +136,6 @@ static __always_inline int handle_pkt(void *data, void *data_end, struct pkt_5tu
 SEC("xdp")
 int ibcms(struct xdp_md *ctx)
 {
-    BPF_MYPERF_START_TRACE_MULTIPLEXED(main);
     void *data_end = (void *)(long)ctx->data_end;
     void *data = (void *)(long)ctx->data;
     void *data_meta = (void *)(long)ctx->data_meta;
@@ -171,7 +167,6 @@ int ibcms(struct xdp_md *ctx)
     __u16 pkt2_hashes[4];
     hash(&pkt2, sizeof(pkt2), pkt2_hashes);
     countmin_add(cm, pkt2_hashes);
-    BPF_MYPERF_END_TRACE_MULTIPLEXED(main);
     return XDP_DROP + (XDP_DROP << 4);
 }
 

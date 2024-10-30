@@ -26,16 +26,8 @@
 #include <bpf/bpf_endian.h>
 #include <linux/types.h>
 #include <bpf/bpf_helpers.h>
-#include "mykperf_module.h"
 #include "fasthash.h"
 
-BPF_MYKPERF_INIT_TRACE();
-DEFINE_SECTIONS("main");
-
-struct t_meta
-{
-    // unsigned shortd;
-};
 
 #define _SEED_HASHFN 77
 
@@ -81,8 +73,8 @@ static __always_inline void countmin_add(struct countmin *cm, const __u16 hashes
     for (int i = 0; i < ARRAY_SIZE(hashes); i++)
     {
         __u32 target_idx = hashes[i] & (COLUMNS - 1);
-        __sync_fetch_and_add(&cm->values[i][target_idx], 1); //;< -this crash clang
-        // cm->values[i][target_idx]++;
+        //__sync_fetch_and_add(&cm->values[i][target_idx], 1); //;< -this crash clang
+        cm->values[i][target_idx]++;
     }
     return;
 }
