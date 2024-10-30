@@ -1,12 +1,14 @@
-TARGET:=bpass
+TARGETS:=bpass pass
 
 
 .PHONY : all
 
-all: 
-	clang -g -O2 -target bpf -c $(TARGET).bpf.c -o $(TARGET).bpf.o -DDEBUG
-	bpftool gen skeleton $(TARGET).bpf.o > $(TARGET).bpf.skel.h
-	gcc -g -O2 -o $(TARGET) $(TARGET).c -lbpf
+all: clean $(TARGETS)
+
+$(TARGETS): 
+	clang -g -O2 --target=bpf -c $@.bpf.c -o $@.bpf.o
+	bpftool gen skeleton $@.bpf.o > $@.bpf.skel.h
+	gcc -g -O2 -o $@ $@.c -lbpf
 
 clean:
-	rm -f $(TARGET) $(TARGET).bpf.o $(TARGET).bpf.skel.h
+	rm -f $(TARGETS) $(TARGETS:=.bpf.o) $(TARGETS:=.bpf.skel.h)
