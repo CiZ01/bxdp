@@ -7,4 +7,5 @@
 *.pcap
 *.o
 *.skel.h
+*compile_commands.json
 !Makefile
