@@ -1,4 +1,4 @@
-TARGETS:=btx tx
+TARGETS:=btx tx swaptx
 
 
 .PHONY : all

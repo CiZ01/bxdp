@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 	// Set log level
 	// skel->rodata->conntrack_cfg.log_level = DEBUG;
 	//prints only bpf_log_err
-	skel->rodata->conntrack_cfg.log_level = ERR;
+	skel->rodata->conntrack_cfg.log_level = DISABLED;
 
 	err = conntrack_bpf__load(skel);
     if (err) {
