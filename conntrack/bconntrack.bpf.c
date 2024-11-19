@@ -31,8 +31,10 @@
 
 struct t_meta
 {
-    // unsigned short len;
-    unsigned short offset;
+    unsigned short valid;
+    unsigned short len1;
+    unsigned short len2;
+    unsigned short len3;
 };
 
 
@@ -541,8 +543,8 @@ int bconntrack(struct xdp_md *ctx) {
 
 
     int rc;
-    struct packetHeaders pkt1;
-    struct packetHeaders pkt2;
+    // struct packetHeaders pkt1;
+    // struct packetHeaders pkt2;
 
 
     void *data = (void *)(long)ctx->data;
@@ -551,56 +553,71 @@ int bconntrack(struct xdp_md *ctx) {
     struct t_meta *md = data_meta;
     if (md + 1 > data)
     {
-        return XDP_DROP + (XDP_DROP << 4);
+        return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
+
+    }
+
+    __u16 lens[5] = {bpf_ntohs(md->len1), bpf_ntohs(md->len2), bpf_ntohs(md->len3), bpf_ntohs(md->len3)};
+    __u16 lentot = 0;
+
+    for( int i = 0; i < 4; i++ ) {
+        if(bpf_ntohs(md->valid) & (1 << i)) {
+
+            struct packetHeaders pkt;
+
+            rc = parse_packet(data+(lentot &0xFF), data_end, &pkt);
+            if (rc < 0){
+            bpf_log_err("Packet 1 parsing failed.\n");
+            goto DROP;
+            }
+            rc = track(&pkt);
+            if(rc < 0){
+                bpf_log_err("Tracking pkt 1 failed.\n");
+                goto DROP;
+            }
+    
+
+            lentot += lens[i];
+    
+        }
     }
 
 
     // bpf_log_debug("Received packet on interface.\n");
 
 
-    rc = parse_packet(data, data_end, &pkt1);
+    // rc = parse_packet(data, data_end, &pkt1);
 
-    if (rc < 0){
-        bpf_log_err("Packet 1 parsing failed.\n");
-        goto DROP;
-    }
+    // if (rc < 0){
+    //     bpf_log_err("Packet 1 parsing failed.\n");
+    //     goto DROP;
+    // }
 
-    rc = parse_packet(data +(bpf_ntohs(md->offset) & 0xFF), data_end, &pkt2);
+    // rc = parse_packet(data +(bpf_ntohs(md->offset) & 0xFF), data_end, &pkt2);
 
-    if (rc < 0){
-        bpf_log_err("Packet 2 parsing failed.\n");
-        goto DROP;
-    }
+    // if (rc < 0){
+    //     bpf_log_err("Packet 2 parsing failed.\n");
+    //     goto DROP;
+    // }
 
+    // rc = track(&pkt1);
+    // if(rc < 0){
+    //     bpf_log_err("Tracking pkt 1 failed.\n");
+    //     goto DROP;
+    // }
 
-    // bpf_log_debug("Packet parsed, now starting the conntrack.\n");
-    // bpf_log_debug("%u\n", pkt2.dstIp);
-    // 192.168.101.1.2000 > 192.168.101.2.8901: UDP, length 1
-
-
-    rc = track(&pkt1);
-    if(rc < 0){
-        bpf_log_err("Tracking pkt 1 failed.\n");
-        goto DROP;
-    }
-
-    rc = track(&pkt2);
-    if(rc < 0){
-        bpf_log_err("Tracking pkt 2 failed.\n");
-        goto DROP;
-    }
+    // rc = track(&pkt2);
+    // if(rc < 0){
+    //     bpf_log_err("Tracking pkt 2 failed.\n");
+    //     goto DROP;
+    // }
     
-    return XDP_DROP + (XDP_DROP << 4);
+    return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
     
 
 DROP:;
     bpf_log_err("Dropping packet!\n");
-    return XDP_DROP + (XDP_DROP << 4);}
+    return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);}
 
-// /* Redirect require an XDP bpf_prog loaded on the TX device */
-// SEC("xdp")
-// int xdp_redirect_dummy_prog(struct xdp_md *ctx) {
-//     return XDP_PASS;
-// }
 
 char LICENSE[] SEC("license") = "Dual BSD/GPL";

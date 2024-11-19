@@ -12,7 +12,7 @@ struct t_meta
 SEC("xdp")
 int btx(struct xdp_md *ctx)
 {
-	return XDP_TX + (XDP_TX << 4);
+	return XDP_TX + (XDP_TX << 4) + (XDP_TX << 8) + (XDP_TX << 12);
 }
 
 char __license[] SEC("license") = "GPL";

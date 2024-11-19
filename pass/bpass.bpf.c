@@ -6,7 +6,7 @@
 SEC("xdp")
 int bpass(struct xdp_md *ctx)
 {
-	return XDP_PASS + (XDP_PASS << 4);
+	return XDP_PASS + (XDP_PASS << 4) + (XDP_PASS << 8) + (XDP_PASS << 12);
 }
 
 char __license[] SEC("license") = "GPL";

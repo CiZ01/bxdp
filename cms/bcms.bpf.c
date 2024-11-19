@@ -30,8 +30,10 @@
 
 struct t_meta
 {
-    // unsigned short len;
-    unsigned short offset;
+    unsigned short valid;
+    unsigned short len1;
+    unsigned short len2;
+    unsigned short len3;
 };
 
 #define _SEED_HASHFN 77
@@ -84,11 +86,12 @@ static __always_inline void countmin_add(struct countmin *cm, const __u16 hashes
     return;
 }
 
-static __always_inline int handle_pkt(void *data, void *data_end, struct pkt_5tuple *pkt, __u8 offset)
+static __always_inline int handle_pkt(void *data, void *data_end, struct pkt_5tuple *pkt, __u16 offset)
 {
     struct ethhdr *eth = data;
     if (eth + 1 >= data_end || eth + 1 >= data + offset)
-        return XDP_DROP + (XDP_DROP << 4);
+        return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
+    
 
     __u16 h_proto = eth->h_proto;
 
@@ -97,22 +100,23 @@ static __always_inline int handle_pkt(void *data, void *data_end, struct pkt_5tu
     case bpf_htons(ETH_P_IP):
         break;
     default:
-        return XDP_DROP + (XDP_DROP << 4);
+        return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
     }
 
     struct iphdr *ip = data + sizeof(struct ethhdr);
-    if (ip + 1 >= data_end || ip + 1 >= data + offset)
-        return XDP_DROP + (XDP_DROP << 4);
+    if ((void *)(ip + 1) >= data_end || (void *)(ip + 1) >= data + offset)
+        return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
     pkt->src_ip = ip->saddr;
     pkt->dst_ip = ip->daddr;
     pkt->proto = ip->protocol;
+    // bpf_printk("src_ip: %pI4\n", &pkt->src_ip);
     switch (ip->protocol)
     {
     case IPPROTO_TCP:
     {
         struct tcphdr *tcp = data + sizeof(struct ethhdr) + sizeof(struct iphdr);
         if (tcp + 1 > data_end)
-            return XDP_DROP + (XDP_DROP << 4);
+            return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
         pkt->src_port = tcp->source;
         pkt->dst_port = tcp->dest;
         break;
@@ -120,14 +124,14 @@ static __always_inline int handle_pkt(void *data, void *data_end, struct pkt_5tu
     case IPPROTO_UDP:
     {
         struct udphdr *udp = data + sizeof(struct ethhdr) + sizeof(struct iphdr);
-        if (udp + 1 > data_end)
-            return XDP_DROP + (XDP_DROP << 4);
+        if ((void *)(udp + 1) > data_end)
+            return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
         pkt->src_port = udp->source;
         pkt->dst_port = udp->dest;
         break;
     }
     default:
-        return XDP_DROP + (XDP_DROP << 4);
+        return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
     }
     return 0;
 }
@@ -140,34 +144,34 @@ int bcms(struct xdp_md *ctx)
     void *data = (void *)(long)ctx->data;
     void *data_meta = (void *)(long)ctx->data_meta;
     struct t_meta *md = data_meta;
-    if (md + 1 > data)
+    if ((void *)(md + 1) > data)
     {
-        return XDP_DROP + (XDP_DROP << 4);
+        return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
     }
+
+    __u16 lens[5] = {0,bpf_ntohs(md->len1), bpf_ntohs(md->len2), bpf_ntohs(md->len3), bpf_ntohs(md->len3)};
+    __u16 lentot = 0;
 
     __u32 zero = 0;
     struct countmin *cm = bpf_map_lookup_elem(&countmin, &zero);
     if (!cm)
-        return XDP_DROP + (XDP_DROP << 4);
+        return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
 
-    struct pkt_5tuple pkt1;
-    struct pkt_5tuple pkt2;
+    for( int i = 0; i < 4; i++ ) {
+        if(bpf_ntohs(md->valid) & (1 << i)) {
 
-    __u16 pkt1_hashes[4];
-    int ret = handle_pkt(data, data_end, &pkt1, bpf_ntohs(md->offset) & 0xFF);
-    if (ret)
-        return ret;
-    hash(&pkt1, sizeof(pkt1), pkt1_hashes);
-    countmin_add(cm, pkt1_hashes);
+            struct pkt_5tuple pkt;
+            __u16 pkt_hashes[4];
+            int ret = handle_pkt(data+(lentot &0xFF), data_end, &pkt, (lens[i+1] & 0xFF));
+            if (ret)
+                return ret;
+            hash(&pkt, sizeof(pkt), pkt_hashes);
+            countmin_add(cm, pkt_hashes);
+            lentot += lens[i];
+        }
+    }
 
-    __u16 pkt2_hashes[4];
-    ret = handle_pkt(data + (bpf_ntohs(md->offset) & 0xFF), data_end, &pkt2, bpf_ntohs(md->offset) & 0xFF);
-    if (ret)
-        return ret;
-    hash(&pkt2, sizeof(pkt2), pkt2_hashes);
-    countmin_add(cm, pkt2_hashes);
-
-    return XDP_DROP + (XDP_DROP << 4);
+    return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
 }
 
 char LICENSE[] SEC("license") = "Dual BSD/GPL";
