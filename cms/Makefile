@@ -1,4 +1,4 @@
-TARGETS := bcms cms
+TARGETS := bcms cms tbcms tcms
 
 .PHONY : all clean
 

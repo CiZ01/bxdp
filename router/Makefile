@@ -1,4 +1,4 @@
-TARGETS:=router brouter
+TARGETS:=router brouter tbrouter trouter
 
 
 .PHONY : all

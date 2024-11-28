@@ -1,6 +1,7 @@
-TARGETS := conntrack bconntrack tbconntrack tconntrack
+TARGETS:=bnat nat
 
-.PHONY : all clean
+
+.PHONY : all
 
 all: clean $(TARGETS)
 
