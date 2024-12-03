@@ -11,37 +11,51 @@
 #include <stdint.h>
 #include <sys/types.h>
 
-struct ipv4_lpm_key {
-        __u32 prefixlen;
-        __u32 data;
-};
+
+// struct {
+//     __uint(type, BPF_MAP_TYPE_LPM_TRIE);
+//     __uint(max_entries, 1000000);
+//     __type(key, struct ipv4_lpm_key);
+//     __type(value, __u32);
+//     __uint(map_flags, BPF_F_NO_PREALLOC);
+
+// } lpm SEC(".maps") ;
+
+#define START_IP_ADDR 0x0a0a0100 // 10.10.1.0 
+#define END_IP_ADDR 0x0a0a01ff // 10.10.1.256
+
+#define NAT_IP_ADDR 0x0a0a0200 // 10.10.2.0
+
+static __u32 ip_cnt = 0;
 
 
 struct {
-    __uint(type, BPF_MAP_TYPE_LPM_TRIE);
+    __uint(type, BPF_MAP_TYPE_HASH);
     __uint(max_entries, 1000000);
-    __type(key, struct ipv4_lpm_key);
-    __type(value, __u32);
-    __uint(map_flags, BPF_F_NO_PREALLOC);
+    __type(key, __be32);
+    __type(value, __be32);
+} external_map SEC(".maps");
 
-} lpm SEC(".maps") ;
+struct {
+  __uint(type, BPF_MAP_TYPE_HASH);
+  __uint(max_entries, 256);
+  __type(key, __be32);
+  __type(value, __be32);
+} internal_map SEC(".maps");
 
-static __always_inline int handle_pkt(void *data, void *data_end, struct ipv4_lpm_key *pkt)
+static __always_inline __be32 get_ip(void *data, void *data_end)
 {
     struct ethhdr *eth = data;
-    if (eth + 1 >= data_end)
+    if (eth + 1 > data_end)
         return -1;
 
     __u16 h_proto = eth->h_proto;
 
     struct iphdr *ip = data + sizeof(struct ethhdr);
-    if (ip + 1 >= data_end)
+    if (ip + 1 > data_end)
         return -1;
-    pkt->data = ip->saddr;
-    pkt->prefixlen = 32;
-    // bpf_printk("pre src_ip: %pI4\n", &pkt->data);
 
-    return 0;
+    return ip->saddr;
 }
 
 
@@ -91,18 +105,21 @@ SEC("xdp")
 int nat(struct xdp_md *ctx) {
     void* data = (void*)(long)(ctx->data);
     void* data_end = (void*)(long)(ctx->data_end);
-    struct ipv4_lpm_key key;
 
-    int ret = handle_pkt(data, data_end, &key);
-    if (ret){
-        return ret;
-
+    __be32 ip = get_ip(data, data_end);
+    if (ip < 0){
+        return XDP_DROP;
     }
-    __u32 *value = bpf_map_lookup_elem(&lpm, &key);
-    if(value) 
-        update_ipaddr(data, data_end, *value);
+    
+    __be32 *nat_ip = bpf_map_lookup_elem(&external_map, &ip);
+    if (nat_ip == NULL){
+        return XDP_DROP;
+    }
 
-    return XDP_TX;
+    if (update_ipaddr(data, data_end, *nat_ip) < 0){
+        return XDP_DROP;
+    }
+    return XDP_DROP;
 };
 
 

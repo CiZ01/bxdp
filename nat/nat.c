@@ -1,132 +1,119 @@
 #include <arpa/inet.h>
-#include <assert.h> 
+#include <assert.h>
+#include <stdio.h>
 
+#include "nat.bpf.skel.h"
 #include <bpf/libbpf.h>
 #include <net/if.h>
 #include <signal.h>
 #include <sys/resource.h>
-#include "nat.bpf.skel.h"
 
 int if_index;
 struct nat_bpf *nat;
 
-struct ipv4_lpm_key {
-        __u32 prefixlen;
-        __u32 data;
-};
 
-
-void sig_handler(int sig)
-{
-	bpf_xdp_detach(if_index, 0, NULL);
-	nat_bpf__destroy(nat);
-	exit(0);
+void sig_handler(int sig) {
+  bpf_xdp_detach(if_index, 0, NULL);
+  nat_bpf__destroy(nat);
+  exit(0);
 }
 
-void bump_memlock_rlimit(void)
-{
-	struct rlimit rlim_new = {
-		.rlim_cur = RLIM_INFINITY,
-		.rlim_max = RLIM_INFINITY,
-	};
+void bump_memlock_rlimit(void) {
+  struct rlimit rlim_new = {
+      .rlim_cur = RLIM_INFINITY,
+      .rlim_max = RLIM_INFINITY,
+  };
 
-	if (setrlimit(RLIMIT_MEMLOCK, &rlim_new))
-	{
-		fprintf(stderr, "Failed to increase RLIMIT_MEMLOCK limit!\n");
-		exit(1);
-	}
-	if (setrlimit(RLIMIT_STACK, &rlim_new))
-	{
-		fprintf(stderr, "Failed to increase RLIMIT_STACK limit!\n");
-		exit(1);
-	}
-	if (setrlimit(RLIMIT_DATA, &rlim_new))
-	{
-		fprintf(stderr, "Failed to increase RLIMIT_DATA limit!\n");
-		exit(1);
-	}
-	if (setrlimit(RLIMIT_AS, &rlim_new))
-	{
-		fprintf(stderr, "Failed to increase RLIMIT_AS limit!\n");
-		exit(1);
-	}
+  if (setrlimit(RLIMIT_MEMLOCK, &rlim_new)) {
+    fprintf(stderr, "Failed to increase RLIMIT_MEMLOCK limit!\n");
+    exit(1);
+  }
+  if (setrlimit(RLIMIT_STACK, &rlim_new)) {
+    fprintf(stderr, "Failed to increase RLIMIT_STACK limit!\n");
+    exit(1);
+  }
+  if (setrlimit(RLIMIT_DATA, &rlim_new)) {
+    fprintf(stderr, "Failed to increase RLIMIT_DATA limit!\n");
+    exit(1);
+  }
+  if (setrlimit(RLIMIT_AS, &rlim_new)) {
+    fprintf(stderr, "Failed to increase RLIMIT_AS limit!\n");
+    exit(1);
+  }
 }
 
-void updatelpm() {
-    __u64 counttot=0;
+#define INTERNO 0x0a0a0100 //
+#define EXTERNO 0x0a0a0200 //
 
-    struct ipv4_lpm_key key;
+int fill_tbl(struct bpf_map *map, char *filename) {
+  FILE *file = fopen(filename, "r");
+  if (!file) {
+    fprintf(stderr, "Failed to open file\n");
+    return 1;
+  }
 
-	__u32 newip = inet_addr("100.100.100.100");
-
-    for(__u8 i=8; i<=32;i++){
-        __u64 count=0;
-        FILE *fp;
-        char string[50];
-        sprintf(string,"/home/vladimiro/bxdp/router/RCC25/%d.txt",i);
-        fp = fopen(string, "r");
-        char *line = NULL;
-        size_t len = 0;
-        ssize_t read;
-        if (fp == NULL){
-            printf("Map file not found\n");
-            continue;
-        }
-        while ((read = getline(&line, &len, fp)) != -1) {
-            line[strcspn(line,"\n")]=0;
-            key.prefixlen = i;
-            key.data = inet_addr(line);
-            assert(bpf_map__update_elem(nat->maps.lpm, &key,sizeof(struct ipv4_lpm_key), &newip,sizeof(newip), BPF_ANY)==0);
-            count++;
-            counttot++;
-        }
-        fclose(fp);
-	    	if (line)
-		free(line);
-		// printf("Rules in map n %d = %llu Total number of rules = %llu\n",i,count,counttot);
+  char *line;
+  size_t len = 0;
+  size_t read;
+  int n = 0;
+  while ((read = getline(&line, &len, file)) != -1) {
+    int inutile_valore = (n % 2) ? INTERNO : EXTERNO;
+    __be32 ip = inet_addr(line);
+    int err = bpf_map__update_elem(map, &ip, sizeof(ip), &inutile_valore,
+                                   sizeof(ip), BPF_ANY);
+    if (err) {
+      fprintf(stderr, "Failed to update map\n");
+      return err;
     }
+    n++;
+  }
+
+  fclose(file);
+  return 0;
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
 
-	int err;
-	if (argc < 2)
-	{
-		fprintf(stderr, "Usage: %s <ifname>\n", argv[0]);
-		return 1;
-	}
+  int err;
+  if (argc < 2) {
+    fprintf(stderr, "Usage: %s <ifname> <file_tbl>\n", argv[0]);
+    return 1;
+  }
 
-	bump_memlock_rlimit();
+  bump_memlock_rlimit();
 
-	nat = nat_bpf__open_and_load();
+  nat = nat_bpf__open_and_load();
 
-	if (!nat)
-	{
-		fprintf(stderr, "Failed to open and load BPF object\n");
-		return 1;
-	}
+  if (!nat) {
+    fprintf(stderr, "Failed to open and load BPF object\n");
+    return 1;
+  }
 
-	if_index = if_nametoindex(argv[1]);
-	if (!if_index)
-	{
-		fprintf(stderr, "Failed to get ifindex of %s\n", argv[1]);
-		return 1;
-	}
-	err = bpf_xdp_attach(if_index, bpf_program__fd(nat->progs.nat), 0, NULL);
-	if (err)
-	{
-		fprintf(stderr, "Failed to attach BPF program\n");
-		return 1;
-	}
-	updatelpm();
-	printf("BPF program attached\n");
+  if_index = if_nametoindex(argv[1]);
+  if (!if_index) {
+    fprintf(stderr, "Failed to get ifindex of %s\n", argv[1]);
+    return 1;
+  }
 
-	signal(SIGINT, sig_handler);
-	signal(SIGTERM, sig_handler);
+  err = fill_tbl(nat->maps.external_map, argv[2]);
+  if (err) {
+    fprintf(stderr, "Failed to fill external map\n");
+    return 1;
+  }
 
-	while (1)
-		;
+  err = bpf_xdp_attach(if_index, bpf_program__fd(nat->progs.nat), 0, NULL);
+  if (err) {
+    fprintf(stderr, "Failed to attach BPF program\n");
+    return 1;
+  }
 
-	return 0;
+  printf("BPF program attached\n");
+
+  signal(SIGINT, sig_handler);
+  signal(SIGTERM, sig_handler);
+
+  while (1)
+    ;
+
+  return 0;
 }

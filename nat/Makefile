@@ -1,4 +1,4 @@
-TARGETS:=bnat nat
+TARGETS:= tbnat nat bnat
 
 
 .PHONY : all
