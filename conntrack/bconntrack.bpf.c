@@ -534,7 +534,8 @@ PASS_ACTION:;
     // bpf_log_debug("Redirect pkt to IF2 iface with ifindex: %d\n", conntrack_cfg.if_index_if2);
 
     // return bpf_redirect(conntrack_cfg.if_index_if2, 0);
-    return 1;
+    return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
+
 }
 
 

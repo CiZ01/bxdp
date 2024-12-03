@@ -94,8 +94,10 @@ int nat(struct xdp_md *ctx) {
     struct ipv4_lpm_key key;
 
     int ret = handle_pkt(data, data_end, &key);
-    if (ret)
+    if (ret){
         return ret;
+
+    }
     __u32 *value = bpf_map_lookup_elem(&lpm, &key);
     if(value) 
         update_ipaddr(data, data_end, *value);

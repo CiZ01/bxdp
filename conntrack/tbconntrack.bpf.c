@@ -29,6 +29,9 @@
 #include "conntrack_bpf_log.h"
 #include "conntrack_parser.h"
 
+
+#define BATCH_SIZE 4
+
 struct t_meta
 {
     unsigned short valid;
@@ -515,7 +518,7 @@ PASS_ACTION:;
     // }
 
     if (pkt->connStatus == INVALID) {
-        bpf_log_err("Connection status is invalid\n");
+        // bpf_log_err("Connection status is invalid\n");
     }
     //swap mac for redirection
     // data_end = (void *)(long)ctx->data_end;
@@ -534,7 +537,7 @@ PASS_ACTION:;
     // bpf_log_debug("Redirect pkt to IF2 iface with ifindex: %d\n", conntrack_cfg.if_index_if2);
 
     // return bpf_redirect(conntrack_cfg.if_index_if2, 0);
-    return 1;
+    return XDP_TX + (XDP_TX << 4) + (XDP_TX << 8) + (XDP_TX << 12);
 }
 
 
@@ -564,15 +567,16 @@ int tbconntrack(struct xdp_md *ctx) {
         if(bpf_ntohs(md->valid) & (1 << i)) {
 
             struct packetHeaders pkt;
-
+            
             rc = parse_packet(data+(lentot &0xFF), data_end, &pkt);
+            // bpf_log_err("Parsing packet %d\n lentot = %u", i,lentot);
             if (rc < 0){
-            bpf_log_err("Packet 1 parsing failed.\n");
+            bpf_log_err("Packet %d parsing failed.\n", i);
             goto DROP;
             }
             rc = track(&pkt);
             if(rc < 0){
-                bpf_log_err("Tracking pkt 1 failed.\n");
+                bpf_log_err("Tracking pkt %d failed.\n",i);
                 goto DROP;
             }
     
@@ -611,7 +615,7 @@ int tbconntrack(struct xdp_md *ctx) {
     //     bpf_log_err("Tracking pkt 2 failed.\n");
     //     goto DROP;
     // }
-    
+    // bpf_log_err("end main!\n");
     return XDP_TX + (XDP_TX << 4) + (XDP_TX << 8) + (XDP_TX << 12);
     
 

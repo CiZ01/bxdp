@@ -49,11 +49,11 @@ int router(struct xdp_md *ctx) {
                 __u8 *value = bpf_map_lookup_elem(&lpm, &key);
 
                 if(value){
-                    bpf_printk("Matched with rule %u\n",value[0]);
+                    // bpf_printk("Matched with rule %u\n",value[0]);
                     // return XDP_DROP;
                     goto end;
                 }else{
-                    bpf_printk("Not Matched\n");
+                    // bpf_printk("Not Matched\n");
                     // return XDP_DROP;
                     goto end;
                 }

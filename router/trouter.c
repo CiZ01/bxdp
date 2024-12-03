@@ -4,9 +4,8 @@
 #include <bpf/libbpf.h>
 #include <net/if.h>
 #include <signal.h>
-#include <stdio.h>
 #include <sys/resource.h>
-#include "router.bpf.skel.h"
+#include "trouter.bpf.skel.h"
 
 struct ipv4_lpm_key {
         __u32 prefixlen;
@@ -15,12 +14,12 @@ struct ipv4_lpm_key {
 
 
 int if_index;
-struct router_bpf *router;
+struct trouter_bpf *trouter;
 
 void sig_handler(int sig)
 {
 	bpf_xdp_detach(if_index, 0, NULL);
-	router_bpf__destroy(router);
+	trouter_bpf__destroy(trouter);
 	exit(0);
 }
 
@@ -47,7 +46,7 @@ void updatelpm() {
             line[strcspn(line,"\n")]=0;
             key.prefixlen = i;
             key.data = inet_addr(line);
-            assert(bpf_map__update_elem(router->maps.lpm, &key,sizeof(struct ipv4_lpm_key), &i,sizeof(i), BPF_ANY)==0);
+            assert(bpf_map__update_elem(trouter->maps.lpm, &key,sizeof(struct ipv4_lpm_key), &i,sizeof(i), BPF_ANY)==0);
             count++;
             counttot++;
         }
@@ -98,9 +97,9 @@ int main(int argc, char **argv)
 
 	bump_memlock_rlimit();
 
-	router = router_bpf__open_and_load();
+	trouter = trouter_bpf__open_and_load();
 
-	if (!router)
+	if (!trouter)
 	{
 		fprintf(stderr, "Failed to open and load BPF object\n");
 		return 1;
@@ -112,7 +111,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Failed to get ifindex of %s\n", argv[1]);
 		return 1;
 	}
-	err = bpf_xdp_attach(if_index, bpf_program__fd(router->progs.router), 0, NULL);
+	err = bpf_xdp_attach(if_index, bpf_program__fd(trouter->progs.trouter), 0, NULL);
 	if (err)
 	{
 		fprintf(stderr, "Failed to attach BPF program\n");
