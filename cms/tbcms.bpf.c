@@ -86,10 +86,10 @@ static __always_inline void countmin_add(struct countmin *cm, const __u16 hashes
     return;
 }
 
-static __always_inline int handle_pkt(void *data, void *data_end, struct pkt_5tuple *pkt, __u16 offset)
+static __always_inline int handle_pkt(void *data, void *data_end, struct pkt_5tuple *pkt)
 {
     struct ethhdr *eth = data;
-    if (eth + 1 >= data_end || eth + 1 >= data + offset)
+    if (eth + 1 >= data_end)
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
     
 
@@ -104,7 +104,7 @@ static __always_inline int handle_pkt(void *data, void *data_end, struct pkt_5tu
     }
 
     struct iphdr *ip = data + sizeof(struct ethhdr);
-    if ((void *)(ip + 1) >= data_end || (void *)(ip + 1) >= data + offset)
+    if ((void *)(ip + 1) >= data_end)
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
     pkt->src_ip = ip->saddr;
     pkt->dst_ip = ip->daddr;
@@ -149,7 +149,7 @@ int tbcms(struct xdp_md *ctx)
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
     }
 
-    __u16 lens[5] = {0,bpf_ntohs(md->len1), bpf_ntohs(md->len2), bpf_ntohs(md->len3), bpf_ntohs(md->len3)};
+    __u16 lens[4] = {bpf_ntohs(md->len1), bpf_ntohs(md->len2), bpf_ntohs(md->len3), bpf_ntohs(md->len3)};
     __u16 lentot = 0;
 
     __u32 zero = 0;
@@ -162,7 +162,7 @@ int tbcms(struct xdp_md *ctx)
 
             struct pkt_5tuple pkt;
             __u16 pkt_hashes[4];
-            int ret = handle_pkt(data+(lentot &0xFF), data_end, &pkt, (lens[i+1] & 0xFF));
+            int ret = handle_pkt(data+(lentot &0xFF), data_end, &pkt);
             if (ret)
                 return ret;
             hash(&pkt, sizeof(pkt), pkt_hashes);

@@ -558,7 +558,7 @@ int bconntrack(struct xdp_md *ctx) {
 
     }
 
-    __u16 lens[5] = {bpf_ntohs(md->len1), bpf_ntohs(md->len2), bpf_ntohs(md->len3), bpf_ntohs(md->len3)};
+    __u16 lens[4] = {bpf_ntohs(md->len1), bpf_ntohs(md->len2), bpf_ntohs(md->len3), bpf_ntohs(md->len3)};
     __u16 lentot = 0;
 
     for( int i = 0; i < 4; i++ ) {
@@ -577,7 +577,6 @@ int bconntrack(struct xdp_md *ctx) {
                 goto DROP;
             }
     
-
             lentot += lens[i];
     
         }

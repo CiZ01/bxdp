@@ -99,13 +99,13 @@ int bnat(struct xdp_md *ctx) {
     return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
   }
 
-  __u16 lens[5] = {0, bpf_ntohs(md->len1), bpf_ntohs(md->len2),
+  __u16 lens[4] = {bpf_ntohs(md->len1), bpf_ntohs(md->len2),
                    bpf_ntohs(md->len3), bpf_ntohs(md->len3)};
   __u16 lentot = 0;
   for (int i = 0; i < 4; i++) {
     if (bpf_ntohs(md->valid) & (1 << i)) {
 
-      __be32 ip = get_ip(data, data_end);
+      __be32 ip = get_ip(data + (lentot & 0xFF), data_end);
       if (ip < 0) {
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
       }
@@ -115,7 +115,7 @@ int bnat(struct xdp_md *ctx) {
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
       }
 
-      if (update_ipaddr(data, data_end, *nat_ip) < 0) {
+      if (update_ipaddr(data+ (lentot & 0xFF), data_end, *nat_ip) < 0) {
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
       }
 

@@ -36,12 +36,6 @@ struct {
     __type(value, __be32);
 } external_map SEC(".maps");
 
-struct {
-  __uint(type, BPF_MAP_TYPE_HASH);
-  __uint(max_entries, 256);
-  __type(key, __be32);
-  __type(value, __be32);
-} internal_map SEC(".maps");
 
 static __always_inline __be32 get_ip(void *data, void *data_end)
 {

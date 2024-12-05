@@ -67,7 +67,7 @@ int tbrouter(struct xdp_md *ctx) {
     __u16 lens[4] = {bpf_ntohs(md->len1), bpf_ntohs(md->len2), bpf_ntohs(md->len3), bpf_ntohs(md->len3)};
     __u16 lentot = 0;
 
-    for( int i = 0; i < 2; i++ ) {
+    for( int i = 0; i < 4; i++ ) {
         if(bpf_ntohs(md->valid) & (1 << i)) {
             struct ipv4_lpm_key key;
 
@@ -86,19 +86,12 @@ int tbrouter(struct xdp_md *ctx) {
             //     // goto end;
             // }
             lentot += lens[i];
-
-            ret = handle_pkt(data+(lentot &0xFF), data_end, &key);
-            if (ret)
-                return ret;
-            value = bpf_map_lookup_elem(&lpm, &key);
-
-            lentot += lens[i+1];
         }
     }
     
 end:
 
-    return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
+    return XDP_TX + (XDP_TX << 4) + (XDP_TX << 8) + (XDP_TX << 12);
 };
 
 
