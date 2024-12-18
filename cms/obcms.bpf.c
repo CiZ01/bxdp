@@ -152,7 +152,6 @@ int obcms(struct xdp_md *ctx)
     }
 
     __u16 lens[4] = {bpf_ntohs(md->len1), bpf_ntohs(md->len2), bpf_ntohs(md->len3), bpf_ntohs(md->len3)};
-    __u16 lentot = 0;
 
     __u32 zero = 0;
     struct countmin *cm = bpf_map_lookup_elem(&countmin, &zero);
@@ -175,7 +174,8 @@ int obcms(struct xdp_md *ctx)
     // if (ret1 || ret2 || ret3){
     // if (ret1 || ret2){
         bpf_printk("ret1: %d ret2: %d ret3: %d ret4:%d\n", ret1, ret2, ret3, ret4);
-        // bpf_printk("ret1: %d ret2: %d\n", ret1, ret2);
+        bpf_printk("ret1: %d ret2: %d\n", ret1, ret2);
+        bpf_printk("handle_pkt failed\n");
         return ret1;
     }
 
@@ -187,6 +187,7 @@ int obcms(struct xdp_md *ctx)
     countmin_add(cm, pkt_hashes2);
     countmin_add(cm, pkt_hashes3);
     countmin_add(cm, pkt_hashes4);
+
     
     return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
 }

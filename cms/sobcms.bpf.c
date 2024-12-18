@@ -30,10 +30,10 @@
 
 struct t_meta
 {
-    __u16 valid;
-    __u16 len1;
-    __u16 len2;
-    __u16 len3;
+    unsigned short valid;
+    unsigned short len1;
+    unsigned short len2;
+    unsigned short len3;
 };
 
 #define _SEED_HASHFN 77
@@ -75,22 +75,47 @@ static __always_inline void hash(const void *pkt, const __u64 len, __u16 hashes[
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
-static __always_inline void countmin_add(struct countmin *cm, const __u16 hashes[4])
+// static __always_inline void countmin_add(struct countmin *cm, const __u16 hashes[4])
+// {
+//     for (int i = 0; i < ARRAY_SIZE(hashes); i++)
+//     {
+//         __u32 target_idx = hashes[i] & (COLUMNS - 1);
+//         //__sync_fetch_and_add(&cm->values[i][target_idx], 1); //;< -this crash clang
+//         cm->values[i][target_idx]++;
+//     }
+//     return;
+// }
+
+static __always_inline void countmin_load(struct countmin *cm, const __u16 hashes[4], __u64 *new_values)
 {
     for (int i = 0; i < ARRAY_SIZE(hashes); i++)
     {
         __u32 target_idx = hashes[i] & (COLUMNS - 1);
-        //__sync_fetch_and_add(&cm->values[i][target_idx], 1); //;< -this crash clang
-        cm->values[i][target_idx]++;
+        new_values[i] = cm->values[i][target_idx];
     }
     return;
 }
 
+static __always_inline void countmin_store(struct countmin *cm, const __u16 hashes[4], __u64 *new_values)
+{
+    for (int i = 0; i < ARRAY_SIZE(hashes); i++)
+    {
+        __u32 target_idx = hashes[i] & (COLUMNS - 1);
+        new_values[i]++;
+        cm->values[i][target_idx] = new_values[i];
+    }
+    return;
+}
+
+
+
 static __always_inline int handle_pkt(void *data, void *data_end, struct pkt_5tuple *pkt)
 {
     struct ethhdr *eth = data;
-    if (eth + 1 >= data_end)
+    if (eth + 1 >= data_end ){
+        bpf_printk("quit1\n");
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
+    }
     
 
     __u16 h_proto = eth->h_proto;
@@ -109,7 +134,7 @@ static __always_inline int handle_pkt(void *data, void *data_end, struct pkt_5tu
     pkt->src_ip = ip->saddr;
     pkt->dst_ip = ip->daddr;
     pkt->proto = ip->protocol;
-    // bpf_printk("src_ip: %pI4\n", &pkt->src_ip);
+    // bpf_printk("src_ip: %pI4\n", &ip->saddr);
     switch (ip->protocol)
     {
     case IPPROTO_TCP:
@@ -131,14 +156,13 @@ static __always_inline int handle_pkt(void *data, void *data_end, struct pkt_5tu
         break;
     }
     default:
-        bpf_printk("proto\n");
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
     }
     return 0;
 }
 
 SEC("xdp")
-int tbcms(struct xdp_md *ctx)
+int sobcms(struct xdp_md *ctx)
 {
 
     void *data_end = (void *)(long)ctx->data_end;
@@ -149,34 +173,66 @@ int tbcms(struct xdp_md *ctx)
     {
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
     }
-    __u16 lentot = 0;
-    // __u16 lens[4] = {md->len1, md->len2, md->len3, 0};
+
     __u16 lens[4] = {bpf_ntohs(md->len1), bpf_ntohs(md->len2), bpf_ntohs(md->len3), bpf_ntohs(md->len3)};
 
-    
     __u32 zero = 0;
     struct countmin *cm = bpf_map_lookup_elem(&countmin, &zero);
     if (!cm)
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
 
-    for( int i = 0; i < 4; i++ ) {
-        if(bpf_ntohs(md->valid) & (1 << i)) {
-            
-            struct pkt_5tuple pkt;
-            __u16 pkt_hashes[4];
-
-            int ret = handle_pkt(data+(lentot &0xFF), data_end, &pkt);
-            if (ret){
-                return ret;
-            }
-            hash(&pkt, sizeof(pkt), pkt_hashes);
-            countmin_add(cm, pkt_hashes);
-            lentot += lens[i];
-
-        }
+    struct pkt_5tuple pkt1;
+    struct pkt_5tuple pkt2;
+    struct pkt_5tuple pkt3;
+    struct pkt_5tuple pkt4;
+    __u16 pkt_hashes1[4];
+    __u16 pkt_hashes2[4];
+    __u16 pkt_hashes3[4];
+    __u16 pkt_hashes4[4];
+    __u64 values1[4];
+    __u64 values2[4];
+    __u64 values3[4];
+    __u64 values4[4];
+    int ret1 = handle_pkt(data, data_end, &pkt1);
+    int ret2 = handle_pkt(data+(lens[0] &0xFF), data_end, &pkt2);
+    int ret3 = handle_pkt(data+((lens[0]+lens[1])&0xFF), data_end, &pkt3);
+    int ret4 = handle_pkt(data+((lens[0]+lens[1]+lens[2])&0xFF), data_end, &pkt4);
+    if (ret1 || ret2 || ret3 || ret4){
+    // if (ret1 || ret2 || ret3){
+    // if (ret1 || ret2){
+        bpf_printk("ret1: %d ret2: %d ret3: %d ret4:%d\n", ret1, ret2, ret3, ret4);
+        bpf_printk("ret1: %d ret2: %d\n", ret1, ret2);
+        bpf_printk("handle_pkt failed\n");
+        return ret1;
     }
 
-    return XDP_TX + (XDP_TX << 4) + (XDP_TX << 8) + (XDP_TX << 12);
+    hash(&pkt1, sizeof(pkt1), pkt_hashes1);
+    countmin_load(cm, pkt_hashes1, values1);
+    hash(&pkt2, sizeof(pkt2), pkt_hashes2);
+    countmin_load(cm, pkt_hashes2, values2);
+    hash(&pkt3, sizeof(pkt3), pkt_hashes3);
+    countmin_load(cm, pkt_hashes3, values3);
+    hash(&pkt4, sizeof(pkt4), pkt_hashes4);
+    countmin_load(cm, pkt_hashes4, values4);
+
+    // hash(&pkt1, sizeof(pkt1), pkt_hashes1);
+    // hash(&pkt2, sizeof(pkt2), pkt_hashes2);
+    // hash(&pkt3, sizeof(pkt3), pkt_hashes3);
+    // hash(&pkt4, sizeof(pkt4), pkt_hashes4);
+
+    // countmin_load(cm, pkt_hashes1, values1);
+    // countmin_load(cm, pkt_hashes2, values2);
+    // countmin_load(cm, pkt_hashes3, values3);
+    // countmin_load(cm, pkt_hashes4, values4);
+
+    countmin_store(cm, pkt_hashes1, values1);
+    countmin_store(cm, pkt_hashes2, values2);
+    countmin_store(cm, pkt_hashes3, values3);
+    countmin_store(cm, pkt_hashes4, values4);
+    
+
+    
+    return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
 }
 
 char LICENSE[] SEC("license") = "Dual BSD/GPL";

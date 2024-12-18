@@ -107,15 +107,18 @@ int bnat(struct xdp_md *ctx) {
 
       __be32 ip = get_ip(data + (lentot & 0xFF), data_end);
       if (ip < 0) {
+        bpf_printk("get ip failed\n");
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
       }
 
       __be32 *nat_ip = bpf_map_lookup_elem(&external_map, &ip);
       if (nat_ip == NULL) {
+        bpf_printk("nat_ip failed\n");
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
       }
 
       if (update_ipaddr(data+ (lentot & 0xFF), data_end, *nat_ip) < 0) {
+        bpf_printk("update_ipaddr failed\n");
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
       }
 

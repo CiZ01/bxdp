@@ -142,8 +142,10 @@ int tcms(struct xdp_md *ctx)
     __u16 pkt1_hashes[4];
 
     int ret = handle_pkt(data, data_end, &pkt1);
-    if (ret)
+    if (ret){
+        bpf_printk("handle failed\n");
         return ret;
+    }
     hash(&pkt1, sizeof(pkt1), pkt1_hashes);
     countmin_add(cm, pkt1_hashes);
     return XDP_TX;

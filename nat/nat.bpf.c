@@ -3,13 +3,8 @@
 #include <bpf/bpf_helpers.h>
 #include <linux/if_ether.h>
 #include <linux/ip.h>
-#include <linux/stddef.h>
-#include <linux/tcp.h>
-#include <linux/udp.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <stdint.h>
-#include <sys/types.h>
 
 
 // struct {

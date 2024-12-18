@@ -89,9 +89,10 @@ static __always_inline void countmin_add(struct countmin *cm, const __u16 hashes
 static __always_inline int handle_pkt(void *data, void *data_end, struct pkt_5tuple *pkt)
 {
     struct ethhdr *eth = data;
-    if (eth + 1 >= data_end)
+    if (eth + 1 >= data_end){
+        bpf_printk("eth + 1 >= data_end\n");
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
-    
+    }
 
     __u16 h_proto = eth->h_proto;
 
@@ -100,6 +101,7 @@ static __always_inline int handle_pkt(void *data, void *data_end, struct pkt_5tu
     case bpf_htons(ETH_P_IP):
         break;
     default:
+        bpf_printk("eth\n");
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
     }
 
@@ -109,7 +111,7 @@ static __always_inline int handle_pkt(void *data, void *data_end, struct pkt_5tu
     pkt->src_ip = ip->saddr;
     pkt->dst_ip = ip->daddr;
     pkt->proto = ip->protocol;
-    // bpf_printk("src_ip: %pI4\n", &pkt->src_ip);
+    // bpf_printk("src_ip: %pI4\n", &ip->saddr);
     switch (ip->protocol)
     {
     case IPPROTO_TCP:
@@ -124,13 +126,16 @@ static __always_inline int handle_pkt(void *data, void *data_end, struct pkt_5tu
     case IPPROTO_UDP:
     {
         struct udphdr *udp = data + sizeof(struct ethhdr) + sizeof(struct iphdr);
-        if ((void *)(udp + 1) > data_end)
+        if ((void *)(udp + 1) > data_end){
+            bpf_printk("udp\n");
             return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
+        }
         pkt->src_port = udp->source;
         pkt->dst_port = udp->dest;
         break;
     }
     default:
+        bpf_printk("proto\n");
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
     }
     return 0;
@@ -146,11 +151,15 @@ int bcms(struct xdp_md *ctx)
     struct t_meta *md = data_meta;
     if ((void *)(md + 1) > data)
     {
+        bpf_printk("md + 1 > data\n");
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
     }
 
-    __u16 lens[4] = {bpf_ntohs(md->len1), bpf_ntohs(md->len2), bpf_ntohs(md->len3), bpf_ntohs(md->len3)};
     __u16 lentot = 0;
+    __u16 lens[4] = {bpf_ntohs(md->len1), bpf_ntohs(md->len2), bpf_ntohs(md->len3), bpf_ntohs(md->len3)};
+    
+    // bpf_printk("valid: %d\n", bpf_ntohs(md->valid));
+    // bpf_printk("lens: %d %d %d %d\n", lens[0], lens[1], lens[2], lens[3]);
 
     __u32 zero = 0;
     struct countmin *cm = bpf_map_lookup_elem(&countmin, &zero);
@@ -158,20 +167,22 @@ int bcms(struct xdp_md *ctx)
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
 
     for( int i = 0; i < 4; i++ ) {
-        // if(bpf_ntohs(md->valid) & (1 << i)) {
+        if(bpf_ntohs(md->valid) & (1 << i)) {
 
             struct pkt_5tuple pkt;
-            __u16 pkt_hashes[4];
+            __u16 pkt_hashes[4];            
+
             int ret = handle_pkt(data+(lentot &0xFF), data_end, &pkt);
             if (ret){
-                bpf_printk("handle_pkt failed\n");
+                bpf_printk("handle_pkt failed at i %d\n", i);
+                // bpf_printk("len0 %d\n", lens[0]);
                 return ret;
             }
             hash(&pkt, sizeof(pkt), pkt_hashes);
             countmin_add(cm, pkt_hashes);
             
             lentot += lens[i];
-        // }
+        }
     }
     
     return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
