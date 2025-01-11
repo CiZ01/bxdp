@@ -9,3 +9,7 @@
 *.skel.h
 *compile_commands.json
 !Makefile
+*.cmd
+*.ko
+*.order
+*.symvers
