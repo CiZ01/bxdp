@@ -28,7 +28,7 @@
 #include <linux/types.h>
 #include <linux/udp.h>
 
-void xxhash32(const __u8 *buf, const __u32 seed, __u8* out) __ksym;
+void xxhash32(const __u8 *buf, const __u32 seed, __u8 *out) __ksym;
 
 #define _SEED_HASHFN 77
 
@@ -55,29 +55,28 @@ struct {
 } countmin SEC(".maps");
 
 static __always_inline void hash(const struct pkt_5tuple *pkt,
-                                 __u8 hashes[4][4]) {
-  __u8 h[sizeof(struct pkt_5tuple)*4];
+                                 __u64 hashes[4][4]) {
+  __u8 h[sizeof(struct pkt_5tuple) * 4];
   xxhash32((__u8 *)pkt, 0, (__u8 *)h);
+  __u64 *h64 = (__u64 *)h;
 
-  bpf_printk("non crash: %x\n %x\n %x\n %x\n", h[0], h[1], h[2], h[3]);
+  // bpf_printk("non crash: %x\n %x\n %x\n %x\n", h[0], h[1], h[2], h[3]);
+  // bpf_printk("hashe:ws:\n%x\n %x\n %x\n %x\n", h[0], h[1], h[2], h[3]);
+  for (int i = 0; i < 4; i++) {
+    hashes[0] = (h64[0] & 0xFFFF);
+    hashes[1] = h64[i][1] >> 16 & 0xFFF;
+    hashes[2] = h64[i][2] >> 32 & 0xFFF;
+    hashes[3] = h64[i][3] >> 48 & 0xFFF;
+  }
   return;
-  // // bpf_printk("hashe:ws:\n%x\n %x\n %x\n %x\n", h[0], h[1], h[2], h[3]);
-  // for (int i = 0; i < 4; i++) {
-  //   hashes[i][0] = h[i] & 0xFF;
-  //   hashes[i][1] = h[i] >> 8 & 0xFF;
-  //   hashes[i][2] = h[i] >> 16 & 0xFF;
-  //   hashes[i][3] = h[i] >> 24 & 0xFF;
-  // }
-
-  // return;
 }
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 static __always_inline void countmin_add(struct countmin *cm,
-                                         const __u8 hashes[4][4]) {
+                                         const __u32 hashes[4][4]) {
   for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < ARRAY_SIZE(hashes[i]); j++) {
+    for (int j = 0; j < 4; j++) {
       __u32 target_idx = hashes[i][j] & (COLUMNS - 1);
       //__sync_fetch_and_add(&cm->values[i][target_idx], 1); //;< -this crash
       // clang
@@ -142,7 +141,7 @@ int hbcms(struct xdp_md *ctx) {
     return XDP_DROP;
 
   struct pkt_5tuple pkts[4];
-  __u8 pkts_hashes[4][4] = {0};
+  __u64 pkts_hashes[4][4] = {0};
   for (int i = 0; i < 4; i++) {
     int ret = handle_pkt(data, data_end, &pkts[i]);
     if (ret)
