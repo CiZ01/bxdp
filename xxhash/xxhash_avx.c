@@ -20,6 +20,7 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Author");
 MODULE_DESCRIPTION("xxhash SIMD");
 
+// __bpf_kfunc void xxhash(__u8 *buf, __u32 seed, __u8 *out, __u64 b_len);
 __bpf_kfunc void xxhash16x4(const __u8 *buf, const __u32 seed, __u8 *out);
 __bpf_kfunc void xxhash16x2(const __u8 *buf, const __u32 seed, __u8 *out);
 
@@ -46,8 +47,8 @@ static __m512i round_all16x4(__m512i accs, __m512i data,
                              const __m512i prime1_vec) {
   for (int i = 0; i < 4; i++) {
     accs = _mm512_add_epi64(accs, _mm512_mullo_epi64(data, prime1_vec));
+    accs = _mm512_rol_epi64(accs, 17);
     accs = _mm512_mullo_epi64(accs, prime1_vec);
-    accs = _mm512_rol_epi64(accs, 13);
     /*
         Destination element 0 gets source element 1 → imm8[1:0] = 01
                 Destination element 1 gets source element 2 → imm8[3:2] = 10
@@ -67,8 +68,8 @@ static __m256i round_all16x2(__m256i accs, __m256i data,
                              const __m256i prime1_vec) {
   for (int i = 0; i < 4; i++) {
     accs = _mm256_add_epi64(accs, _mm256_mullo_epi64(data, prime1_vec));
+    accs = _mm256_rol_epi64(accs, 17);
     accs = _mm256_mullo_epi64(accs, prime1_vec);
-    accs = _mm256_rol_epi64(accs, 13);
     /*
         Destination element 0 gets source element 1 → imm8[1:0] = 01
                 Destination element 1 gets source element 2 → imm8[3:2] = 10
@@ -85,9 +86,10 @@ static __m256i round_all16x2(__m256i accs, __m256i data,
 }
 
 __bpf_kfunc void xxhash16x4(const __u8 *buf, const __u32 seed, __u8 *out) {
-
+  // pr_info("is aligned %d\n" , ((unsigned long)buf & 0x7) == 0);
+  // kernel_fpu_begin();
   __m512i input = _mm512_loadu_si512((__m512i *)buf);
-
+  // PRINT_M512(input);
   __u32 acc1 = seed + PRIME32_1 + PRIME32_2;
   __u32 acc2 = seed + PRIME32_2;
   __u32 acc3 = seed;
@@ -102,12 +104,16 @@ __bpf_kfunc void xxhash16x4(const __u8 *buf, const __u32 seed, __u8 *out) {
                        acc3, acc2, acc1, acc4, acc3, acc2, acc1);
 
   __m512i res = round_all16x4(accs, input, prime1_vec);
+  // PRINT_M512(res);
 
   _mm512_storeu_si512((__m512i *)out, res);
+  // PRINT OUT
+  // kernel_fpu_end();
   return;
 }
 
 __bpf_kfunc void xxhash16x2(const __u8 *buf, const __u32 seed, __u8 *out) {
+  // kernel_fpu_begin();
 
   __m256i input = _mm256_loadu_si256((__m256i *)buf);
 
@@ -126,8 +132,26 @@ __bpf_kfunc void xxhash16x2(const __u8 *buf, const __u32 seed, __u8 *out) {
   __m256i res = round_all16x2(accs, input, prime1_vec);
 
   _mm256_storeu_si256((__m256i *)out, res);
+  // kernel_fpu_end();
   return;
 }
+
+// __bpf_kfunc void xxhash(__u8 *buf, __u32 seed, __u8 *out, __u64 b_len) {
+//   if (b_len == 1 || b_len > 4) {
+//     out = NULL; //error
+//     return;
+//   } 
+  
+//   if (b_len == 2) {
+//     kernel_fpu_begin();
+//     xxhash16x2(buf, seed, out);
+//     kernel_fpu_end();
+//   } else if (b_len > 2) {
+//     kernel_fpu_begin();
+//     xxhash16x4(buf, seed, out);
+//     kernel_fpu_end();
+//   }
+// }
 
 BTF_SET8_START(bpf_task_set)
 BTF_ID_FLAGS(func, xxhash16x4)

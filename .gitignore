@@ -13,3 +13,5 @@
 *.ko
 *.order
 *.symvers
+*.mod.c
+*.mod
