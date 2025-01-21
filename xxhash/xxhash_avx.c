@@ -86,7 +86,7 @@ static __m256i round_all16x2(__m256i accs, __m256i data,
 }
 
 __bpf_kfunc void xxhash16x4(const __u8 *buf, const __u32 seed, __u8 *out) {
-  // pr_info("is aligned %d\n" , ((unsigned long)buf & 0x7) == 0);
+  // pr_info("is aligned %d\n", ((unsigned long)buf % 64) == 0);
   // kernel_fpu_begin();
   __m512i input = _mm512_loadu_si512((__m512i *)buf);
   // PRINT_M512(input);
