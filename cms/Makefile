@@ -1,11 +1,13 @@
-TARGETS := bcms cms tbcms tcms obcms sobcms hbcms
+TARGETS := bcms cms tbcms tcms obcms sobcms abcms aobcms
+ALGN := 64
 
 .PHONY : all clean
 
 all: clean $(TARGETS)
 
 $(TARGETS): 
-	clang -g -O2 --target=bpf -c $@.bpf.c -o $@.bpf.o
+	@echo "algn value: $(ALGN)"
+	clang -g -O2 --target=bpf -c $@.bpf.c -o $@.bpf.o -DALGN=$(ALGN)
 	bpftool gen skeleton $@.bpf.o > $@.bpf.skel.h
 	gcc -g -O2 -o $@ $@.c -lbpf
 

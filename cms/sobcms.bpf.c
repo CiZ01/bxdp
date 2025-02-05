@@ -15,6 +15,7 @@
  */
 
 #include <linux/bpf.h>
+
 #include <linux/filter.h>
 #include <linux/icmp.h>
 #include <linux/if_ether.h>
@@ -27,6 +28,7 @@
 #include <linux/types.h>
 #include <bpf/bpf_helpers.h>
 #include "fasthash.h"
+#include "xxhash64.h"
 
 struct t_meta
 {
@@ -65,7 +67,7 @@ struct
 
 static __always_inline void hash(const void *pkt, const __u64 len, __u16 hashes[4])
 {
-    __u64 h = fasthash64(pkt, len, _SEED_HASHFN);
+    __u64 h = xxhash64(pkt, len, _SEED_HASHFN);
     hashes[0] = (h & 0xFFFF);
     hashes[1] = h >> 16 & 0xFFFF;
     hashes[2] = h >> 32 & 0xFFFF;
@@ -197,10 +199,10 @@ int sobcms(struct xdp_md *ctx)
     int ret2 = handle_pkt(data+(lens[0] &0xFF), data_end, &pkt2);
     int ret3 = handle_pkt(data+((lens[0]+lens[1])&0xFF), data_end, &pkt3);
     int ret4 = handle_pkt(data+((lens[0]+lens[1]+lens[2])&0xFF), data_end, &pkt4);
-    if (ret1 || ret2 || ret3 || ret4){
+    // if (ret1 || ret2 || ret3 || ret4){
     // if (ret1 || ret2 || ret3){
-    // if (ret1 || ret2){
-        bpf_printk("ret1: %d ret2: %d ret3: %d ret4:%d\n", ret1, ret2, ret3, ret4);
+    if (ret1 || ret2){
+        // bpf_printk("ret1: %d ret2: %d ret3: %d ret4:%d\n", ret1, ret2, ret3, ret4);
         bpf_printk("ret1: %d ret2: %d\n", ret1, ret2);
         bpf_printk("handle_pkt failed\n");
         return ret1;
@@ -214,16 +216,6 @@ int sobcms(struct xdp_md *ctx)
     countmin_load(cm, pkt_hashes3, values3);
     hash(&pkt4, sizeof(pkt4), pkt_hashes4);
     countmin_load(cm, pkt_hashes4, values4);
-
-    // hash(&pkt1, sizeof(pkt1), pkt_hashes1);
-    // hash(&pkt2, sizeof(pkt2), pkt_hashes2);
-    // hash(&pkt3, sizeof(pkt3), pkt_hashes3);
-    // hash(&pkt4, sizeof(pkt4), pkt_hashes4);
-
-    // countmin_load(cm, pkt_hashes1, values1);
-    // countmin_load(cm, pkt_hashes2, values2);
-    // countmin_load(cm, pkt_hashes3, values3);
-    // countmin_load(cm, pkt_hashes4, values4);
 
     countmin_store(cm, pkt_hashes1, values1);
     countmin_store(cm, pkt_hashes2, values2);

@@ -26,7 +26,7 @@
 #include <bpf/bpf_endian.h>
 #include <linux/types.h>
 #include <bpf/bpf_helpers.h>
-#include "fasthash.h"
+#include "xxhash64.h"
 
 struct t_meta
 {
@@ -34,12 +34,16 @@ struct t_meta
     unsigned short len1;
     unsigned short len2;
     unsigned short len3;
+    // unsigned short len4;
+
 };
 
 #define _SEED_HASHFN 77
 
 #define HASHFN_N 4
 #define COLUMNS 1048576
+// #define COLUMNS 512
+
 
 struct countmin
 {
@@ -57,6 +61,7 @@ struct pkt_5tuple
 
 struct
 {
+    // __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
     __uint(type, BPF_MAP_TYPE_ARRAY);
     __uint(max_entries, 1);
     __type(key, __u32);
@@ -65,7 +70,7 @@ struct
 
 static __always_inline void hash(const void *pkt, const __u64 len, __u16 hashes[4])
 {
-    __u64 h = fasthash64(pkt, len, _SEED_HASHFN);
+    __u64 h = xxhash64(pkt, len, _SEED_HASHFN);
     hashes[0] = (h & 0xFFFF);
     hashes[1] = h >> 16 & 0xFFFF;
     hashes[2] = h >> 32 & 0xFFFF;
@@ -112,6 +117,8 @@ static __always_inline int handle_pkt(void *data, void *data_end, struct pkt_5tu
     pkt->dst_ip = ip->daddr;
     pkt->proto = ip->protocol;
     // bpf_printk("src_ip: %pI4\n", &ip->saddr);
+    // bpf_printk("dst_ip: %pI4\n", &ip->daddr);
+    // bpf_printk("proto: %d\n", ip->protocol);
     switch (ip->protocol)
     {
     case IPPROTO_TCP:
@@ -153,11 +160,12 @@ int bcms(struct xdp_md *ctx)
     {
         bpf_printk("md + 1 > data\n");
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
+        // return XDP_PASS + (XDP_PASS << 4) + (XDP_PASS << 8) + (XDP_PASS << 12);
     }
 
     __u16 lentot = 0;
     __u16 lens[4] = {bpf_ntohs(md->len1), bpf_ntohs(md->len2), bpf_ntohs(md->len3), bpf_ntohs(md->len3)};
-    
+
     // bpf_printk("valid: %d\n", bpf_ntohs(md->valid));
     // bpf_printk("lens: %d %d %d %d\n", lens[0], lens[1], lens[2], lens[3]);
 

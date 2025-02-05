@@ -26,7 +26,7 @@
 #include <bpf/bpf_endian.h>
 #include <linux/types.h>
 #include <bpf/bpf_helpers.h>
-#include "fasthash.h"
+#include "xxhash64.h"
 
 struct t_meta
 {
@@ -65,7 +65,7 @@ struct
 
 static __always_inline void hash(const void *pkt, const __u64 len, __u16 hashes[4])
 {
-    __u64 h = fasthash64(pkt, len, _SEED_HASHFN);
+    __u64 h = xxhash64(pkt, sizeof(struct pkt_5tuple), _SEED_HASHFN);
     hashes[0] = (h & 0xFFFF);
     hashes[1] = h >> 16 & 0xFFFF;
     hashes[2] = h >> 32 & 0xFFFF;
@@ -173,7 +173,7 @@ int obcms(struct xdp_md *ctx)
     if (ret1 || ret2 || ret3 || ret4){
     // if (ret1 || ret2 || ret3){
     // if (ret1 || ret2){
-        bpf_printk("ret1: %d ret2: %d ret3: %d ret4:%d\n", ret1, ret2, ret3, ret4);
+        // bpf_printk("ret1: %d ret2: %d ret3: %d ret4:%d\n", ret1, ret2, ret3, ret4);
         bpf_printk("ret1: %d ret2: %d\n", ret1, ret2);
         bpf_printk("handle_pkt failed\n");
         return ret1;
