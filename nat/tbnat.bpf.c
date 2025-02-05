@@ -9,7 +9,17 @@
 #include <netinet/in.h>
 #include <stdint.h>
 #include <sys/types.h>
+#include <linux/bpf.h>
 #include <bpf/bpf_helpers.h>
+
+// struct {
+//     __uint(type, BPF_MAP_TYPE_LPM_TRIE);
+//     __uint(max_entries, 1000000);
+//     __type(key, struct ipv4_lpm_key);
+//     __type(value, __u32);
+//     __uint(map_flags, BPF_F_NO_PREALLOC);
+
+// } lpm SEC(".maps") ;
 
 #define START_IP_ADDR 0x0a0a0100 // 10.10.1.0
 #define END_IP_ADDR 0x0a0a01ff   // 10.10.1.256
@@ -97,18 +107,20 @@ int tbnat(struct xdp_md *ctx) {
 
       __be32 ip = get_ip(data + (lentot & 0xFF), data_end);
       if (ip < 0) {
+        bpf_printk("get ip failed\n");
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
       }
 
       __be32 *nat_ip = bpf_map_lookup_elem(&external_map, &ip);
-      if (!nat_ip) {
+      if (nat_ip == NULL) {
+        bpf_printk("nat_ip failed\n");
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
       }
 
-      if (update_ipaddr(data + (lentot  & 0xFF), data_end, *nat_ip) < 0) {
+      if (update_ipaddr(data+ (lentot & 0xFF), data_end, *nat_ip) < 0) {
+        bpf_printk("update_ipaddr failed\n");
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
       }
-
 
       lentot += lens[i];
     }

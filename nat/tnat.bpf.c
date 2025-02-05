@@ -3,13 +3,8 @@
 #include <bpf/bpf_helpers.h>
 #include <linux/if_ether.h>
 #include <linux/ip.h>
-#include <linux/stddef.h>
-#include <linux/tcp.h>
-#include <linux/udp.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <stdint.h>
-#include <sys/types.h>
 
 
 // struct {
@@ -102,6 +97,7 @@ int tnat(struct xdp_md *ctx) {
 
     __be32 ip = get_ip(data, data_end);
     if (ip < 0){
+        bpf_printk("Failed to get ip address\n");
         return XDP_DROP;
     }
     
@@ -111,6 +107,7 @@ int tnat(struct xdp_md *ctx) {
     }
 
     if (update_ipaddr(data, data_end, *nat_ip) < 0){
+        bpf_printk("Failed to update ip address\n");
         return XDP_DROP;
     }
     return XDP_TX;

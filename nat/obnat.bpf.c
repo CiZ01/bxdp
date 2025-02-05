@@ -148,9 +148,6 @@ int obnat(struct xdp_md *ctx) {
 
     return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
 
-   
-
-    return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
 };
 
 char LICENSE[] SEC("license") = "Dual BSD/GPL";
