@@ -58,7 +58,7 @@ struct
 
 static __always_inline void hash(const void *pkt, const __u64 len, __u16 hashes[4])
 {
-    __u64 h = xxhash64(pkt, _SEED_HASHFN);
+    __u64 h = xxhash64(pkt, len,_SEED_HASHFN);
     hashes[0] = (h & 0xFFFF);
     hashes[1] = h >> 16 & 0xFFFF;
     hashes[2] = h >> 32 & 0xFFFF;
