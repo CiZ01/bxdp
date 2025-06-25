@@ -110,9 +110,9 @@ int obnat(struct xdp_md *ctx) {
     __be32 *nat_ip3;
     __be32 *nat_ip4;
     ip1 = get_ip(data, data_end);
-    ip2 = get_ip(data + (lens[0] & 0xFF), data_end);
-    ip3 = get_ip(data + (lens[0] +lens[1] & 0xFF), data_end);
-    ip4 = get_ip(data + (lens[0] +lens[1] +lens[2] & 0xFF), data_end);
+    ip2 = get_ip(data + (lens[0] & 0x1FFF), data_end);
+    ip3 = get_ip(data + (lens[0] +lens[1] & 0x1FFF), data_end);
+    ip4 = get_ip(data + (lens[0] +lens[1] +lens[2] & 0x1FFF), data_end);
 
     if (ip1 < 0 || ip2 < 0 || ip3 < 0 || ip4 < 0) {
     // if (ip1 < 0 || ip2 < 0 || ip3 < 0) {
@@ -135,9 +135,9 @@ int obnat(struct xdp_md *ctx) {
     }
 
     int ret1 = update_ipaddr(data, data_end, *nat_ip1);
-    int ret2 = update_ipaddr(data + (lens[0] & 0xFF), data_end, *nat_ip2);
-    int ret3 = update_ipaddr(data + (lens[0] +lens[1] & 0xFF), data_end, *nat_ip3);
-    int ret4 = update_ipaddr(data + (lens[0] +lens[1] +lens[2] & 0xFF), data_end, *nat_ip4);
+    int ret2 = update_ipaddr(data + (lens[0] & 0x1FFF), data_end, *nat_ip2);
+    int ret3 = update_ipaddr(data + (lens[0] +lens[1] & 0x1FFF), data_end, *nat_ip3);
+    int ret4 = update_ipaddr(data + (lens[0] +lens[1] +lens[2] & 0x1FFF), data_end, *nat_ip4);
 
     if (ret1 || ret2 || ret3 || ret4) {
     // if (ret1 || ret2 || ret3) {

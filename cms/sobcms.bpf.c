@@ -196,9 +196,9 @@ int sobcms(struct xdp_md *ctx)
     __u64 values3[4];
     __u64 values4[4];
     int ret1 = handle_pkt(data, data_end, &pkt1);
-    int ret2 = handle_pkt(data+(lens[0] &0xFF), data_end, &pkt2);
-    int ret3 = handle_pkt(data+((lens[0]+lens[1])&0xFF), data_end, &pkt3);
-    int ret4 = handle_pkt(data+((lens[0]+lens[1]+lens[2])&0xFF), data_end, &pkt4);
+    int ret2 = handle_pkt(data+(lens[0] &0x1FFF), data_end, &pkt2);
+    int ret3 = handle_pkt(data+((lens[0]+lens[1])&0x1FFF), data_end, &pkt3);
+    int ret4 = handle_pkt(data+((lens[0]+lens[1]+lens[2])&0x1FFF), data_end, &pkt4);
     // if (ret1 || ret2 || ret3 || ret4){
     // if (ret1 || ret2 || ret3){
     if (ret1 || ret2){

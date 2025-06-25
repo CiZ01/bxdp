@@ -165,7 +165,7 @@ int tbcms(struct xdp_md *ctx)
             struct pkt_5tuple pkt;
             __u16 pkt_hashes[4];
 
-            int ret = handle_pkt(data+(lentot &0xFF), data_end, &pkt);
+            int ret = handle_pkt(data+(lentot &0x1FFF), data_end, &pkt);
             if (ret){
                 return ret;
             }

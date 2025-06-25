@@ -1,0 +1,2 @@
+CompileFlags:
+  Remove: [-mrecord-mcount, "-fconserve-stack", -fsanitize=buonds-strict]

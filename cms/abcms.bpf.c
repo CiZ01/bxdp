@@ -166,7 +166,7 @@ int abcms(struct xdp_md *ctx) {
 
   for (int i = 0; i < 4; i++) {
     if (bpf_ntohs(md->valid) & (1 << i)) {
-      int ret = handle_pkt(data + (lentot & 0xFF), data_end, &pkts[i]);
+      int ret = handle_pkt(data + (lentot & 0x1FFF), data_end, &pkts[i]);
       if (ret) {
         bpf_printk("handle_pkt failed at i %d\n", i);
         return ret;

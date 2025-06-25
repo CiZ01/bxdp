@@ -174,7 +174,7 @@ int aobnitro1(struct xdp_md *ctx) {
 
   int ret1, ret2, ret3, ret4 = 0;
 
-  int samplerate = 4;
+  int samplerate = 2;
 
   __u32 zero = 0;
   struct countmin *cm = bpf_map_lookup_elem(&countmin, &zero);
@@ -188,13 +188,13 @@ int aobnitro1(struct xdp_md *ctx) {
     ret1 = handle_pkt(data, data_end, &pkts[0]);
 
   if ((randoms[0] & ((1 << samplerate) - 1)) == 0)
-    ret2 = handle_pkt(data + (lens[0] & 0xFF), data_end, &pkts[0]);
+    ret2 = handle_pkt(data + (lens[0] & 0x1FFF), data_end, &pkts[0]);
 
   if ((randoms[0] & ((1 << samplerate) - 1)) == 0)
-    ret3 = handle_pkt(data + ((lens[0] + lens[1]) & 0xFF), data_end, &pkts[0]);
+    ret3 = handle_pkt(data + ((lens[0] + lens[1]) & 0x1FFF), data_end, &pkts[0]);
 
   if ((randoms[0] & ((1 << samplerate) - 1)) == 0)
-    ret4 = handle_pkt(data + ((lens[0] + lens[1] + lens[2]) & 0xFF), data_end,
+    ret4 = handle_pkt(data + ((lens[0] + lens[1] + lens[2]) & 0x1FFF), data_end,
                       &pkts[0]);
   if (ret1 || ret2 || ret3 || ret4) {
     // if (ret1 || ret2 || ret3){

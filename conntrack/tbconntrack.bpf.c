@@ -568,7 +568,7 @@ int tbconntrack(struct xdp_md *ctx) {
 
             struct packetHeaders pkt;
             
-            rc = parse_packet(data+(lentot &0xFF), data_end, &pkt);
+            rc = parse_packet(data+(lentot &0x1FFF), data_end, &pkt);
             // bpf_log_err("Parsing packet %d\n lentot = %u", i,lentot);
             if (rc < 0){
             bpf_log_err("Packet %d parsing failed.\n", i);

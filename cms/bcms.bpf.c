@@ -94,7 +94,7 @@ static __always_inline void countmin_add(struct countmin *cm, const __u16 hashes
 static __always_inline int handle_pkt(void *data, void *data_end, struct pkt_5tuple *pkt)
 {
     struct ethhdr *eth = data;
-    if (eth + 1 >= data_end){
+    if ((void *)(eth + 1) >= data_end){
         bpf_printk("eth + 1 >= data_end\n");
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
     }
@@ -107,6 +107,7 @@ static __always_inline int handle_pkt(void *data, void *data_end, struct pkt_5tu
         break;
     default:
         bpf_printk("eth\n");
+        bpf_printk("h_proto: %d\n", h_proto);
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
     }
 
@@ -180,10 +181,13 @@ int bcms(struct xdp_md *ctx)
             struct pkt_5tuple pkt;
             __u16 pkt_hashes[4];            
 
-            int ret = handle_pkt(data+(lentot &0xFF), data_end, &pkt);
+            
+            int ret = handle_pkt(data + (lentot & 0x1FFF), data_end, &pkt);
             if (ret){
+                bpf_printk("valid: %d\n", bpf_ntohs(md->valid));
+                bpf_printk("lens: %d %d %d %d\n", lens[0], lens[1], lens[2], lens[3]);
                 bpf_printk("handle_pkt failed at i %d\n", i);
-                // bpf_printk("len0 %d\n", lens[0]);
+                bpf_printk("len %d lens[i]%d, lentot %d\n",i, lens[i], lentot);
                 return ret;
             }
             hash(&pkt, sizeof(pkt), pkt_hashes);

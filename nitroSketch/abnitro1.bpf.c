@@ -183,7 +183,7 @@ int abnitro1(struct xdp_md *ctx)
     randoms[2] = random >> 16 & 0xFF;
     randoms[3] = random >> 24 & 0xFF;
 
-    int samplerate = 4;
+    int samplerate = 2;
 
     __u32 zero = 0;
     struct countmin *cm = bpf_map_lookup_elem(&countmin, &zero);
@@ -199,7 +199,7 @@ int abnitro1(struct xdp_md *ctx)
 
             if ((randoms[i] & ((1 << samplerate)-1)) == 0){          
 
-                int ret = handle_pkt(data+(lentot &0xFF), data_end, &pkts[i]);
+                int ret = handle_pkt(data+(lentot &0x1FFF), data_end, &pkts[i]);
                 if (ret){
                     bpf_printk("handle_pkt failed at i %d\n", i);
                     // bpf_printk("len0 %d\n", lens[0]);

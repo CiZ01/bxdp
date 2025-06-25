@@ -78,7 +78,7 @@ int obsampler(struct xdp_md *ctx) {
             if ((randoms[i] & ((1 << samplerate)-1)) == 0){
 
 
-                __be32 ip = get_ip(data + (lentot & 0xFF), data_end);
+                __be32 ip = get_ip(data + (lentot & 0x1FFF), data_end);
                 if (ip < 0){
                     bpf_printk("get ip failed\n");
                     return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);

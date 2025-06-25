@@ -80,13 +80,13 @@ int obsampler(struct xdp_md *ctx) {
     ip1 = get_ip(data, data_end);
     }
     if ((randoms[1] & ((1 << samplerate)-1)) == 0){
-    ip2 = get_ip(data + (lens[0] & 0xFF), data_end);
+    ip2 = get_ip(data + (lens[0] & 0x1FFF), data_end);
     }
     if ((randoms[2] & ((1 << samplerate)-1)) == 0){
-    ip3 = get_ip(data + (lens[0] +lens[1] & 0xFF), data_end);
+    ip3 = get_ip(data + (lens[0] +lens[1] & 0x1FFF), data_end);
     }
     if ((randoms[3] & ((1 << samplerate)-1)) == 0){
-    ip4 = get_ip(data + (lens[0] +lens[1] +lens[2] & 0xFF), data_end);
+    ip4 = get_ip(data + (lens[0] +lens[1] +lens[2] & 0x1FFF), data_end);
     }
 
     if (ip1 <= 0 || ip2 <= 0 || ip3 <= 0 || ip4 <= 0) {

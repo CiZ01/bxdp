@@ -566,7 +566,7 @@ int bconntrack(struct xdp_md *ctx) {
 
             struct packetHeaders pkt;
 
-            rc = parse_packet(data+(lentot &0xFF), data_end, &pkt);
+            rc = parse_packet(data+(lentot &0x1FFF), data_end, &pkt);
             if (rc < 0){
             bpf_log_err("Packet 1 parsing failed.\n");
             goto DROP;

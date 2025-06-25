@@ -67,7 +67,7 @@ int tbrouter(struct xdp_md *ctx) {
     if (bpf_ntohs(md->valid) & (1 << i)) {
       struct ipv4_lpm_key key;
 
-      int ret = handle_pkt(data + (lentot & 0xFF), data_end, &key);
+      int ret = handle_pkt(data + (lentot & 0x1FFF), data_end, &key);
       if (ret)
         return ret;
 

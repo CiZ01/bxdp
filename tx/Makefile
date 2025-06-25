@@ -1,4 +1,4 @@
-TARGETS:=btx tx swaptx bswaptx swappass bswappass
+TARGETS:=btx tx swaptx bswaptx swappass bswappass redirect 
 
 
 .PHONY : all

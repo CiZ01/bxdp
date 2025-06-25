@@ -109,7 +109,8 @@ struct lcore_queue_conf lcore_queue_conf[RTE_MAX_LCORE];
 static struct rte_eth_conf port_conf = {
     .txmode =
         {
-            .mq_mode = RTE_ETH_MQ_TX_NONE,
+            // .mq_mode = RTE_ETH_MQ_TX_NONE,
+            .mq_mode = ETH_MQ_TX_NONE,
         },
 };
 
@@ -193,11 +194,15 @@ static void l2fwd_mac_updating(struct rte_mbuf *m, unsigned dest_portid) {
   eth = rte_pktmbuf_mtod(m, struct rte_ether_hdr *);
 
   /* 02:00:00:00:00:xx */
-  tmp = &eth->dst_addr.addr_bytes[0];
+  // tmp = &eth->dst_addr.addr_bytes[0];
+  tmp = &eth->d_addr.addr_bytes[0];
+
   *((uint64_t *)tmp) = 0x000000000002 + ((uint64_t)dest_portid << 40);
 
   /* src addr */
-  rte_ether_addr_copy(&l2fwd_ports_eth_addr[dest_portid], &eth->src_addr);
+  // rte_ether_addr_copy(&l2fwd_ports_eth_addr[dest_portid], &eth->src_addr);
+  rte_ether_addr_copy(&l2fwd_ports_eth_addr[dest_portid], &eth->s_addr);
+
 }
 
 static void count_add(struct rte_mbuf *m) {
@@ -308,54 +313,54 @@ static void l2fwd_main_loop(void) {
 
     /* Read packet from RX queues. 8< */
 
-    for (i = 0; i < qconf->n_rx_port; i++) {
-      portid = qconf->rx_port_list[i];
-      nb_rx = rte_eth_rx_burst(portid, 0, pkts_burst, MAX_PKT_BURST);
+    // for (i = 0; i < qconf->n_rx_port; i++) {
+    //   portid = qconf->rx_port_list[i];
+    //   nb_rx = rte_eth_rx_burst(portid, 0, pkts_burst, MAX_PKT_BURST);
 
-      if (unlikely(nb_rx == 0))
-        continue;
+    //   if (unlikely(nb_rx == 0))
+    //     continue;
 
-      //   //     //   fprintf(stderr, "%u\n", nb_rx);
-      port_statistics[portid].rx += nb_rx;
-      for (j = 0; j < nb_rx; j++) {
-        m = pkts_burst[j];
-        // for (int x = 0; x < 8; x++) {
-        //   fprintf(stderr, "0x%lx ", (uint8_t *)m);
-        // }
-        // fprintf(stderr, "nb_rx %u\n", nb_rx);
+    //   //   //     //   fprintf(stderr, "%u\n", nb_rx);
+    //   port_statistics[portid].rx += nb_rx;
+    //   for (j = 0; j < nb_rx; j++) {
+    //     m = pkts_burst[j];
+    //     // for (int x = 0; x < 8; x++) {
+    //     //   fprintf(stderr, "0x%lx ", (uint8_t *)m);
+    //     // }
+    //     // fprintf(stderr, "nb_rx %u\n", nb_rx);
 
-        // fprintf(stderr, " %x\n", *rte_pktmbuf_mtod(m, uint8_t *));
-        rte_prefetch0(rte_pktmbuf_mtod(m, void *));
-        memcpy(&m4[j % 4], rte_pktmbuf_mtod(m, uint8_t *) + 26, 13);
-        // fprintf(stderr, "m4 %lx\n", m4[j % 4]);
-        if ((j + 1) % 4 == 0) {
-          count_add_simd((uint64_t *)m4);
-          rte_pktmbuf_free_bulk(&pkts_burst[j-4], 4);
-        }
-        //       // fprintf(stderr, "count_add\n");
-        // rte_pktmbuf_free(m);
-      }
-    }
+    //     // fprintf(stderr, " %x\n", *rte_pktmbuf_mtod(m, uint8_t *));
+    //     rte_prefetch0(rte_pktmbuf_mtod(m, void *));
+    //     memcpy(&m4[j % 4], rte_pktmbuf_mtod(m, uint8_t *) + 26, 13);
+    //     // fprintf(stderr, "m4 %lx\n", m4[j % 4]);
+    //     if ((j + 1) % 4 == 0) {
+    //       count_add_simd((uint64_t *)m4);
+    //       rte_pktmbuf_free_bulk(&pkts_burst[j-4], 4);
+    //     }
+    //     //       // fprintf(stderr, "count_add\n");
+    //     // rte_pktmbuf_free(m);
+    //   }
+    // }
 
     /* >8 End of read packet from RX queues. */
 
-    //   for (i = 0; i < qconf->n_rx_port; i++) {
-    //     portid = qconf->rx_port_list[i];
-    //     nb_rx = rte_eth_rx_burst(portid, 0, pkts_burst, MAX_PKT_BURST);
+      for (i = 0; i < qconf->n_rx_port; i++) {
+        portid = qconf->rx_port_list[i];
+        nb_rx = rte_eth_rx_burst(portid, 0, pkts_burst, MAX_PKT_BURST);
 
-    //     if (unlikely(nb_rx == 0))
-    //       continue;
+        if (unlikely(nb_rx == 0))
+          continue;
 
-    //     //   fprintf(stderr, "%u\n", nb_rx);
-    //     port_statistics[portid].rx += nb_rx;
-    //     for (j = 0; j < nb_rx; j++) {
-    //       m = pkts_burst[j];
-    //       rte_prefetch0(rte_pktmbuf_mtod(m, void *));
-    //       count_add(m);
-    //       rte_pktmbuf_free(m);
-    //       // fprintf(stderr, "count_add\n");
-    //     }
-    //   }
+        //   fprintf(stderr, "%u\n", nb_rx);
+        port_statistics[portid].rx += nb_rx;
+        for (j = 0; j < nb_rx; j++) {
+          m = pkts_burst[j];
+          rte_prefetch0(rte_pktmbuf_mtod(m, void *));
+          count_add(m);
+          rte_pktmbuf_free(m);
+          // fprintf(stderr, "count_add\n");
+        }
+      }
   }
   /* >8 End of read packet from RX queues. */
 }
@@ -648,7 +653,8 @@ static void check_all_ports_link_status(uint32_t port_mask) {
         continue;
       }
       /* clear all_ports_up flag if any link down */
-      if (link.link_status == RTE_ETH_LINK_DOWN) {
+      // if (link.link_status == RTE_ETH_LINK_DOWN) {
+      if (link.link_status == ETH_LINK_DOWN) {
         all_ports_up = 0;
         break;
       }
@@ -866,15 +872,14 @@ int main(int argc, char **argv) {
                portid);
 
     printf("done: \n");
-    if (promiscuous_on) {
-      ret = rte_eth_promiscuous_enable(portid);
-      if (ret != 0)
-        rte_exit(EXIT_FAILURE, "rte_eth_promiscuous_enable:err=%s, port=%u\n",
-                 rte_strerror(-ret), portid);
-    }
+    // if (promiscuous_on) {
+    //   ret = rte_eth_promiscuous_enable(portid);
+    //   if (ret != 0)
+    //     rte_exit(EXIT_FAILURE, "rte_eth_promiscuous_enable:err=%s, port=%u\n",
+    //              rte_strerror(-ret), portid);
+    // }
 
-    printf("Port %u, MAC address: " RTE_ETHER_ADDR_PRT_FMT "\n\n", portid,
-           RTE_ETHER_ADDR_BYTES(&l2fwd_ports_eth_addr[portid]));
+    printf("Port %u, MAC address:\n\n", portid);
 
     /* initialize port stats */
     memset(&port_statistics, 0, sizeof(port_statistics));

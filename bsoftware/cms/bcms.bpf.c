@@ -179,6 +179,8 @@ int bcms(struct xdp_md *ctx)
 
             struct pkt_5tuple pkt;
             __u16 pkt_hashes[4];
+            bpf_printk("valid: %d\n", bpf_ntohs(md->valid));
+            bpf_printk("i: %d\n", i);
 
 
             int ret = handle_pkt(data+(i*PAGE_SIZE), data_end, &pkt);

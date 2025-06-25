@@ -1,4 +1,4 @@
-TARGETS := bdrop drop
+TARGETS := bdrop drop swap
 
 .PHONY : all clean
 

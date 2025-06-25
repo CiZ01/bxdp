@@ -185,7 +185,7 @@ int obnitro1(struct xdp_md *ctx)
                 struct pkt_5tuple pkt;
                 __u16 pkt_hashes[4];            
 
-                int ret = handle_pkt(data+(lentot &0xFF), data_end, &pkt);
+                int ret = handle_pkt(data+(lentot &0x1FFF), data_end, &pkt);
                 if (ret){
                     bpf_printk("handle_pkt failed at i %d\n", i);
                     // bpf_printk("len0 %d\n", lens[0]);

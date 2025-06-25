@@ -197,7 +197,7 @@ int bloadbalancer(struct xdp_md *ctx) {
 
       struct pkt_5tuple pkt;
 
-      int ret = handle_pkt(data + (lentot & 0xFF), data_end, &pkt);
+      int ret = handle_pkt(data + (lentot & 0x1FFF), data_end, &pkt);
       if (ret) {
         bpf_printk("handle_pkt failed\n");
         return ret;
@@ -209,7 +209,7 @@ int bloadbalancer(struct xdp_md *ctx) {
         bpf_printk("hash failed\n");
         return XDP_DROP;
       }
-      err = update_eth(data + (lentot & 0xFF), data_end, nh_off, tnl);
+      err = update_eth(data + (lentot & 0x1FFF), data_end, nh_off, tnl);
       if (err) {
         bpf_printk("update_eth failed\n");
       }

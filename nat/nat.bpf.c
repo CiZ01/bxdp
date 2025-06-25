@@ -102,6 +102,7 @@ int nat(struct xdp_md *ctx) {
     
     __be32 *nat_ip = bpf_map_lookup_elem(&external_map, &ip);
     if (nat_ip == NULL){
+        bpf_printk("nat_ip is NULL\n");
         return XDP_DROP;
     }
 

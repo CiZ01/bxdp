@@ -168,7 +168,7 @@ int bnitro1(struct xdp_md *ctx)
     if (!cm)
         return XDP_DROP + (XDP_DROP << 4) + (XDP_DROP << 8) + (XDP_DROP << 12);
 
-    int samplerate = 2;
+    int samplerate = 4;
 
     for( int i = 0; i < 4; i++ ) {
         if(bpf_ntohs(md->valid) & (1 << i)) {
@@ -179,7 +179,7 @@ int bnitro1(struct xdp_md *ctx)
                 struct pkt_5tuple pkt;
                 __u16 pkt_hashes[4];            
 
-                int ret = handle_pkt(data+(lentot &0xFF), data_end, &pkt);
+                int ret = handle_pkt(data+(lentot &0x1FFF), data_end, &pkt);
                 if (ret){
                     bpf_printk("handle_pkt failed at i %d\n", i);
                     // bpf_printk("len i %d\n", lens[i]);

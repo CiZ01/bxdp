@@ -223,10 +223,10 @@ int abloadbalancer(struct xdp_md *ctx) {
   __u64 pkts_hashes[4];
 
   int ret1 = handle_pkt(data, data_end, &pkts[0]);
-  int ret2 = handle_pkt(data + (lens[0] & 0xFF), data_end, &pkts[1]);
+  int ret2 = handle_pkt(data + (lens[0] & 0x1FFF), data_end, &pkts[1]);
   int ret3 =
-      handle_pkt(data + ((lens[0] + lens[1]) & 0xFF), data_end, &pkts[2]);
-  int ret4 = handle_pkt(data + ((lens[0] + lens[1] + lens[2]) & 0xFF), data_end,
+      handle_pkt(data + ((lens[0] + lens[1]) & 0x1FFF), data_end, &pkts[2]);
+  int ret4 = handle_pkt(data + ((lens[0] + lens[1] + lens[2]) & 0x1FFF), data_end,
                         &pkts[3]);
   if (ret1 || ret2 || ret3 || ret4) {
     // if (ret1 || ret2 || ret3){
@@ -260,10 +260,10 @@ int abloadbalancer(struct xdp_md *ctx) {
 
 
   ret1 = update_eth(data, data_end, nh_off, tnls[0]);
-  ret2 = update_eth(data + (lens[0] & 0xFF), data_end, nh_off, tnls[1]);
-  ret3 = update_eth(data + ((lens[0] + lens[1]) & 0xFF), data_end, nh_off,
+  ret2 = update_eth(data + (lens[0] & 0x1FFF), data_end, nh_off, tnls[1]);
+  ret3 = update_eth(data + ((lens[0] + lens[1]) & 0x1FFF), data_end, nh_off,
                     tnls[2]);
-  ret4 = update_eth(data + ((lens[0] + lens[1] + lens[2]) & 0xFF), data_end,
+  ret4 = update_eth(data + ((lens[0] + lens[1] + lens[2]) & 0x1FFF), data_end,
                     nh_off, tnls[3]);
 
   if (ret1 || ret2 || ret3 || ret4) {

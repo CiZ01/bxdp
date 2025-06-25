@@ -103,7 +103,8 @@ int tnat(struct xdp_md *ctx) {
     
     __be32 *nat_ip = bpf_map_lookup_elem(&external_map, &ip);
     if (nat_ip == NULL){
-        return XDP_DROP;
+        bpf_printk("Failed to lookup ip address\n");
+        return XDP_TX;
     }
 
     if (update_ipaddr(data, data_end, *nat_ip) < 0){

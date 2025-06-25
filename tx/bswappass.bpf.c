@@ -34,7 +34,7 @@ int bswappass(struct xdp_md *ctx)
 
 		if(bpf_ntohs(md->valid) & (1 << i)) {
 
-			struct ethhdr *eth = data+(lentot&0xFF);
+			struct ethhdr *eth = data+(lentot&0x1FFF);
 			if ((void *)(eth + 1) > data_end)
 			{
 				bpf_printk("eth\n");
